@@ -11,6 +11,9 @@ const User = require('../../models/User');
 
 const gravatar = require('gravatar');
 
+const validateRegisterInput = require('../../validation/register');
+const validateLoginInput = require('../../validation/login');
+
 // @route   GET api/users/test
 // @desc    Tests user route
 // @access  Public
@@ -20,11 +23,17 @@ router.get('/test', (req, res) => res.json({ msg: 'Users Works' }));
 // @desc    Register user
 // @access  Public
 router.post('/register', (req, res) => {
+    const { errors, isValid } = validateRegisterInput(req.body);
+
+    //Check validation
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
     User.findOne({ email: req.body.email }).then(user => {
         if (user) {
-            return res
-                .status(400)
-                .json({ key: 'email', value: 'Email already exists' });
+            errors.email = 'Email already exists';
+            return res.status(400).json(errors);
         } else {
             let avatar = gravatar.url(req.body.email, {
                 s: '200', //Size
@@ -67,10 +76,18 @@ router.post('/login', (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
 
+    const { errors, isValid } = validateLoginInput(req.body);
+
+    //Check validation
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
+
     // Find the user by email
     User.findOne({ email }).then(user => {
         if (!user) {
-            return res.status(404).json({ email: 'Email not found' });
+            errors.email = 'Email not found';
+            return res.status(404).json(errors);
         }
 
         // Check password
@@ -99,7 +116,8 @@ router.post('/login', (req, res) => {
                     }
                 );
             } else {
-                res.status(400).json({ password: 'Password Incorrect' });
+                errors.password = 'Password incorrect';
+                res.status(400).json(errors);
             }
         });
     });
